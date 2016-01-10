@@ -14,6 +14,12 @@ let ContentAt grid column row =
 
 let Region column row n = (row / n) + n * (column / n)
 
+let GroupedRegions grid =
+    (List.groupBy (fun c -> c.Row) grid.Cells)
+    |> List.append (List.groupBy (fun c -> c.Column) grid.Cells)
+    |> List.append (List.groupBy (fun c -> c.Region) grid.Cells)
+    |> List.map snd
+
 let New n f =
     let nSq = n * n
     let cells = seq {

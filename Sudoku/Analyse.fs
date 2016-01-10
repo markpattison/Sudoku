@@ -47,26 +47,21 @@ let cellsPossiblyContainingValue value cell =
     | Possibles possibles when Set.contains value possibles -> true
     | _ -> false
 
-let searchArea cells maxValue areaIdentifier =
-    let grouped = List.groupBy areaIdentifier cells
-    let checkForValue value (_, cellsInArea) =
+let searchArea maxValue groups =
+    let checkForValue value cellsInArea =
         let possibleCells = cellsInArea |> List.filter (cellsPossiblyContainingValue value)
         if List.length possibleCells = 1 then
             let cell = List.exactlyOne possibleCells
             Some ({ cell with Content = Known value})
         else None
-    let checkAreaForValue value = List.choose (checkForValue value) grouped
+    let checkAreaForValue value = List.choose (checkForValue value) groups
     [1 .. maxValue] |> List.collect checkAreaForValue
 
 let foundCells (grid: Grid) =
-    let cells = grid.Cells
+    let found1 = List.choose cellsWithOnePossible grid.Cells |> Set.ofList
+    let found2 = searchArea grid.MaxValue (GroupedRegions grid) |> Set.ofList
 
-    let found1 = List.choose cellsWithOnePossible cells |> Set.ofList
-    let foundByRow = searchArea cells grid.MaxValue (fun c -> c.Row) |> Set.ofList
-    let foundByColumn = searchArea cells grid.MaxValue (fun c -> c.Column) |> Set.ofList
-    let foundByRegion = searchArea cells grid.MaxValue (fun c -> c.Region) |> Set.ofList
-
-    (found1 + foundByRow + foundByColumn + foundByRegion) |> List.ofSeq
+    (found1 + found2) |> List.ofSeq
 
 type SolveResult =
     | Impossible
@@ -99,12 +94,7 @@ let anyErrors grid =
         let knownCells = cells |> List.choose isKnownValue
         let distinct = List.distinct knownCells
         not (List.length distinct = List.length knownCells)
-    let cells = grid.Cells
-    let groupedByRow = List.groupBy (fun cell -> cell.Row) cells |> List.map snd
-    let groupedByColumn = List.groupBy (fun cell -> cell.Column) cells |> List.map snd
-    let groupedByRegion = List.groupBy (fun cell -> cell.Region) cells |> List.map snd
-    let allGroups = groupedByRow |> List.append groupedByColumn |> List.append groupedByRegion
-    List.exists (fun cellsInArea -> anyDuplicates cellsInArea) allGroups
+    List.exists (fun cellsInArea -> anyDuplicates cellsInArea) (GroupedRegions grid)
 
 let rec Solve grid =
     let numberUnknownCells = grid.Cells |> List.filter notKnown |> List.length
