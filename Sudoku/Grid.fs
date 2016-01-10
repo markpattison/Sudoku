@@ -18,3 +18,27 @@ let Update grid updates =
 
 let EmptyCells grid =
     grid.Cells |> Seq.cast<(Cell * int option)> |> Seq.filter (fun (_, content) -> content = None) |> Seq.length
+
+let cellContentToString (content: int option) =
+    match content with
+    | Some 10 -> "0"
+    | Some 11 -> "A"
+    | Some 12 -> "B"
+    | Some 13 -> "C"
+    | Some 14 -> "D"
+    | Some 15 -> "E"
+    | Some 16 -> "F"
+    | Some n -> sprintf "%i" n
+    | None -> "-"
+
+let Print grid =
+    let gridContents =
+        seq {
+            for y in 0 .. (grid.Size * grid.Size - 1) do
+                for x in 0 .. (grid.Size * grid.Size - 1) do
+                    let (_, content) = grid.Cells.[x, y]
+                    yield (cellContentToString content)
+                yield "\n"
+        }
+    String.concat "" gridContents
+

@@ -87,10 +87,24 @@ let trialAndError grid analysis =
     let gridsToTry = possibles |> Seq.map (fun p -> (cellToTry, p) |> Seq.singleton |> update) |> List.ofSeq
     gridsToTry
 
+let anyErrors grid =
+    let anyDuplicates cells =
+        let knownCells = cells |> Seq.choose (fun (_, content) -> content)
+        let distinct = Seq.distinct knownCells
+        not (Seq.length distinct = Seq.length knownCells)
+    let cells = grid.Cells |> Seq.cast<Cell * int option>
+    let groupedByRow = Seq.groupBy (fun (cell, _) -> cell.Row) cells |> Seq.map snd
+    let groupedByColumn = Seq.groupBy (fun (cell, _) -> cell.Column) cells |> Seq.map snd
+    let groupedByRegion = Seq.groupBy (fun (cell, _) -> cell.Region) cells |> Seq.map snd
+    let allGroups = groupedByRow |> Seq.append groupedByColumn |> Seq.append groupedByRegion
+    Seq.exists (fun cellsInArea -> anyDuplicates cellsInArea) allGroups
+
 let rec Solve grid =
     let numberUnknownCells = Grid.EmptyCells grid
     match numberUnknownCells with
-    | 0 -> Solution grid
+    | 0 ->
+        let g = Grid.Print grid
+        Solution grid
     | _ ->
         let analysis = basicAnalysis grid
         let anyImpossibleCells = analysis.Cells |> Seq.cast<Cell * CellAnalysis> |> Seq.exists (fun (_, content) -> content.NumberPossible = 0)
@@ -99,6 +113,7 @@ let rec Solve grid =
         | false ->
             let found = foundCells analysis
             let numberFound = Seq.length found
+            let g = Grid.Print grid
             match numberFound with
             | 0 ->
                 let trials = trialAndError grid analysis
@@ -112,5 +127,7 @@ let rec Solve grid =
                 | _ -> MultipleSolutions
             | _ ->
                 let updated = Grid.Update grid found
-                Solve updated
+                match anyErrors updated with
+                | true -> Impossible
+                | false -> Solve updated
 
