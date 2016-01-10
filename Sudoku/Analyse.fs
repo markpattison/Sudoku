@@ -2,7 +2,7 @@
 
 open Grid
 
-let isPossiblesNumber cell =
+let numberPossibles cell =
     match cell.Content with
     | Possibles possibles -> Some (cell, Set.count possibles)
     | _ -> None
@@ -77,16 +77,14 @@ let isSolution result =
     | Solution _ -> true
     | _ -> false
 
-let trialAndError analysis =
-    let unknownCells = analysis.Cells |> List.choose isPossiblesNumber
-    let cellToTry = unknownCells |> List.minBy snd |> fst
+let trialAndErrorGrids analysis =
+    let (cellToTry, _) = analysis.Cells |> List.choose numberPossibles |> List.minBy snd
     let possibles =
         match cellToTry.Content with
         | Possibles p -> p
         | _ -> failwith "error"
-    let update = Grid.Update analysis
-    let gridsToTry = possibles |> Seq.map (fun p -> { cellToTry with Content = Known p } |> List.singleton |> update) |> List.ofSeq
-    gridsToTry
+    let tryWith p = { cellToTry with Content = Known p } |> List.singleton |> Grid.Update analysis
+    possibles |> Seq.map tryWith |> List.ofSeq
 
 let anyErrors grid =
     let anyDuplicates cells =
@@ -111,7 +109,7 @@ let rec Solve grid =
             let found = foundCells analysis
             match Seq.length found with
             | 0 ->
-                let trials = trialAndError analysis
+                let trials = trialAndErrorGrids analysis
                 let trialResults = trials |> List.map Solve
                 let anyMultiple = trialResults |> List.exists isMultiple
                 let solutions = trialResults |> List.filter isSolution
