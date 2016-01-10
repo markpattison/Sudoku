@@ -18,41 +18,44 @@ let isUnknown cellAnalysis =
 
 let basicAnalysis grid =
     let allPossibles = [ 1 .. grid.MaxValue] |> Set.ofList
-    let cells = grid.Cells |> Seq.cast<(Cell * int option)> |> List.ofSeq
-    let othersInRow x y = cells |> List.where (fun (cell, _) -> cell.Row = y && cell.Column <> x) |> List.choose snd |> Set.ofList
-    let othersInColumn x y = cells |> List.where (fun (cell, _) -> cell.Column = x && cell.Row <> y) |> List.choose snd |> Set.ofList
-    let othersInRegion x y = cells |> List.where (fun (cell, _) -> cell.Region = Grid.Region x y grid.Size && (cell.Column <> x || cell.Row <> y)) |> List.choose snd |> Set.ofList
+    let cells = grid.Cells |> Seq.cast<(Cell<int option>)> |> List.ofSeq
+    let othersInRow x y = cells |> List.where (fun cell -> cell.Row = y && cell.Column <> x) |> List.choose (fun cell -> cell.Content) |> Set.ofList
+    let othersInColumn x y = cells |> List.where (fun cell -> cell.Column = x && cell.Row <> y) |> List.choose (fun cell -> cell.Content) |> Set.ofList
+    let othersInRegion x y = cells |> List.where (fun cell -> cell.Region = Grid.Region x y grid.Size && (cell.Column <> x || cell.Row <> y)) |> List.choose (fun cell -> cell.Content) |> Set.ofList
     let f x y =
-        let (_, content) = grid.Cells.[x, y]
+        let content = grid.Cells.[x, y].Content
         match content with
         | Some n -> Known n
         | None ->
             Possibles (allPossibles - othersInRow x y - othersInColumn x y - othersInRegion x y)
     New grid.Size f
 
-let cellsWithOnePossible (cell, analysis) =
-    match analysis with
-    | Possibles possibles when Set.count possibles = 1 -> Some (cell, Set.minElement possibles)
+let cellsWithOnePossible cell =
+    match cell.Content with
+    | Possibles possibles when Set.count possibles = 1 -> Some ({ Row = cell.Row; Column = cell.Column; Region = cell.Region; Content = Set.minElement possibles })
     | _ -> None
 
-let cellsContainingValue value (cell, analysis) =
-    match analysis with
+let cellsContainingValue value cell =
+    match cell.Content with
     | Possibles possibles when Set.contains value possibles -> true
     | _ -> false
 
 let searchArea cells maxValue areaIdentifier =
-    let grouped = Seq.groupBy (fun (cell, _) -> areaIdentifier cell) cells
+    let grouped = Seq.groupBy areaIdentifier cells
     let checkForValue value (_, cellsInArea) =
-        match Seq.exists (fun (cell, content) -> content = Known value) cellsInArea with
+        match Seq.exists (fun cell -> cell.Content = Known value) cellsInArea with
         | false ->
-            let possibleCells = cellsInArea |> Seq.filter (cellsContainingValue value) |> Seq.map fst
-            if Seq.length possibleCells = 1 then Some (Seq.exactlyOne possibleCells, value) else None
+            let possibleCells = cellsInArea |> Seq.filter (cellsContainingValue value)
+            if Seq.length possibleCells = 1 then
+                let cell = Seq.exactlyOne possibleCells
+                Some ({ Row = cell.Row; Column = cell.Column; Region = cell.Region; Content = value})
+             else None
         | true -> None
     let checkAreaForValue value = Seq.choose (checkForValue value) grouped
     [1 .. maxValue] |> Seq.collect checkAreaForValue
 
 let foundCells (grid: Grid<CellAnalysis>) =
-    let cells = grid.Cells |> Seq.cast<(Cell * CellAnalysis)>
+    let cells = grid.Cells |> Seq.cast<(Cell<CellAnalysis>)>
 
     let found1 = Seq.choose cellsWithOnePossible cells |> Set.ofSeq
     let foundByRow = searchArea cells grid.MaxValue (fun c -> c.Row) |> Set.ofSeq
@@ -77,25 +80,25 @@ let isSolution result =
     | _ -> false
 
 let trialAndError grid analysis =
-    let unknownCells = analysis.Cells |> Seq.cast<Cell * CellAnalysis> |> Seq.filter (fun (_, content) -> content.NumberPossible > 1)
-    let (cellToTry, cellAnalysis) = unknownCells |> Seq.minBy (fun (cell, content) -> content.NumberPossible)
+    let unknownCells = analysis.Cells |> Seq.cast<Cell<CellAnalysis>> |> Seq.filter (fun cell -> cell.Content.NumberPossible > 1)
+    let cellToTry = unknownCells |> Seq.minBy (fun cell -> cell.Content.NumberPossible)
     let possibles =
-        match cellAnalysis with
+        match cellToTry.Content with
         | Possibles p -> p
         | _ -> failwith "error"
     let update = Grid.Update grid
-    let gridsToTry = possibles |> Seq.map (fun p -> (cellToTry, p) |> Seq.singleton |> update) |> List.ofSeq
+    let gridsToTry = possibles |> Seq.map (fun p -> { Row = cellToTry.Row ; Column = cellToTry.Column; Region = cellToTry.Region; Content = p } |> Seq.singleton |> update) |> List.ofSeq
     gridsToTry
 
 let anyErrors grid =
     let anyDuplicates cells =
-        let knownCells = cells |> Seq.choose (fun (_, content) -> content)
+        let knownCells = cells |> Seq.choose (fun cell -> cell.Content)
         let distinct = Seq.distinct knownCells
         not (Seq.length distinct = Seq.length knownCells)
-    let cells = grid.Cells |> Seq.cast<Cell * int option>
-    let groupedByRow = Seq.groupBy (fun (cell, _) -> cell.Row) cells |> Seq.map snd
-    let groupedByColumn = Seq.groupBy (fun (cell, _) -> cell.Column) cells |> Seq.map snd
-    let groupedByRegion = Seq.groupBy (fun (cell, _) -> cell.Region) cells |> Seq.map snd
+    let cells = grid.Cells |> Seq.cast<Cell<int option>>
+    let groupedByRow = Seq.groupBy (fun cell -> cell.Row) cells |> Seq.map snd
+    let groupedByColumn = Seq.groupBy (fun cell -> cell.Column) cells |> Seq.map snd
+    let groupedByRegion = Seq.groupBy (fun cell -> cell.Region) cells |> Seq.map snd
     let allGroups = groupedByRow |> Seq.append groupedByColumn |> Seq.append groupedByRegion
     Seq.exists (fun cellsInArea -> anyDuplicates cellsInArea) allGroups
 
@@ -107,7 +110,7 @@ let rec Solve grid =
         Solution grid
     | _ ->
         let analysis = basicAnalysis grid
-        let anyImpossibleCells = analysis.Cells |> Seq.cast<Cell * CellAnalysis> |> Seq.exists (fun (_, content) -> content.NumberPossible = 0)
+        let anyImpossibleCells = analysis.Cells |> Seq.cast<Cell<CellAnalysis>> |> Seq.exists (fun cell -> cell.Content.NumberPossible = 0)
         match anyImpossibleCells with
         | true -> Impossible
         | false ->
