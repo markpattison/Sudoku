@@ -3,6 +3,7 @@
 open FsUnit
 open NUnit.Framework
 
+open Grid
 open Analyse
 
 [<TestFixture>]
@@ -11,7 +12,7 @@ module Tests =
     let readGrid3 gridText =
         let validChars = "-123456789"
         let chars = gridText |> Seq.filter (fun c -> Seq.exists (fun validChar -> c = validChar) validChars) |> Seq.toArray
-        let charToContent c = if c = '-' then None else Some (System.Int32.Parse(System.String.Concat(c)))
+        let charToContent c = if c = '-' then Unknown else Known (System.Int32.Parse(System.String.Concat(c)))
         Grid.New 3 (fun x y -> chars.[y * 9 + x] |> charToContent)
 
     let readGrid4 gridText =
@@ -19,15 +20,15 @@ module Tests =
         let chars = gridText |> Seq.filter (fun c -> Seq.exists (fun validChar -> c = validChar) validChars) |> Seq.toArray
         let charToContent c =
             match c with
-            | '-' -> None
-            | '0' -> Some 10
-            | 'A' -> Some 11
-            | 'B' -> Some 12
-            | 'C' -> Some 13
-            | 'D' -> Some 14
-            | 'E' -> Some 15
-            | 'F' -> Some 16
-            | _ -> Some (System.Int32.Parse(System.String.Concat(c)))
+            | '-' -> Unknown
+            | '0' -> Known 10
+            | 'A' -> Known 11
+            | 'B' -> Known 12
+            | 'C' -> Known 13
+            | 'D' -> Known 14
+            | 'E' -> Known 15
+            | 'F' -> Known 16
+            | _ -> Known (System.Int32.Parse(System.String.Concat(c)))
         Grid.New 4 (fun x y -> chars.[y * 16 + x] |> charToContent)
 
     [<Test>]
