@@ -13,7 +13,7 @@ module Tests =
         let validChars = "-123456789"
         let chars = gridText |> Seq.filter (fun c -> Seq.exists (fun validChar -> c = validChar) validChars) |> Seq.toArray
         let charToContent c = if c = '-' then Unknown else Known (System.Int32.Parse(System.String.Concat(c)))
-        Grid.New 3 (fun x y -> chars.[y * 9 + x] |> charToContent)
+        Grid.New 3 (fun column row -> chars.[row * 9 + column] |> charToContent)
 
     let readGrid4 gridText =
         let validChars = "-1234567890ABCDEF"
@@ -29,7 +29,7 @@ module Tests =
             | 'E' -> Known 15
             | 'F' -> Known 16
             | _ -> Known (System.Int32.Parse(System.String.Concat(c)))
-        Grid.New 4 (fun x y -> chars.[y * 16 + x] |> charToContent)
+        Grid.New 4 (fun column row -> chars.[row * 16 + column] |> charToContent)
 
     [<Test>]
     let ``test3`` ()=

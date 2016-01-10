@@ -7,22 +7,29 @@ type CellContent =
 
 type Cell = { Row: int; Column: int; Region: int; Content: CellContent }
 
-type Grid = { Cells: Cell[,]; Size: int; MaxValue: int }
+type Grid = { Cells: Cell list; Size: int; MaxValue: int }
 
-let Region x y n = (y / n) + n * (x / n)
+let ContentAt grid column row =
+    List.filter (fun cell -> cell.Column = column && cell.Row = row) grid.Cells |> List.exactlyOne |> (fun cell -> cell.Content)
+
+let Region column row n = (row / n) + n * (column / n)
 
 let New n f =
     let nSq = n * n
-    let cells = Array2D.init nSq nSq (fun x y -> { Row = y; Column = x; Region = Region x y n; Content = f x y })
+    let cells = seq {
+        for column in 0 .. (nSq - 1) do
+            for row in 0 .. (nSq - 1) do
+                yield { Row = row; Column = column; Region = Region column row n; Content = f column row }} |> List.ofSeq
     { Cells = cells; Size = n; MaxValue = nSq }
 
-let Update grid updates =
-    let newCells = Array2D.copy grid.Cells
-    updates |> Seq.iter (fun cell -> newCells.[cell.Column, cell.Row] <- cell)
-    { Cells = newCells; Size = grid.Size; MaxValue = grid.MaxValue }
-
-let EmptyCells grid =
-    grid.Cells |> Seq.cast<(Cell)> |> Seq.filter (fun cell -> cell.Content = Unknown) |> Seq.length
+let Update (grid: Grid) updates =
+    let f column row =
+        let matchingUpdates = List.filter (fun cell -> cell.Row = row && cell.Column = column) updates
+        match matchingUpdates with
+        | [] -> ContentAt grid column row
+        | [update] -> update.Content
+        | _ -> failwith "error"
+    New grid.Size f
 
 let cellContentToString (content: CellContent) =
     match content with
@@ -39,9 +46,9 @@ let cellContentToString (content: CellContent) =
 let Print grid =
     let gridContents =
         seq {
-            for y in 0 .. (grid.Size * grid.Size - 1) do
-                for x in 0 .. (grid.Size * grid.Size - 1) do
-                    let content = grid.Cells.[x, y].Content
+            for row in 0 .. (grid.Size * grid.Size - 1) do
+                for column in 0 .. (grid.Size * grid.Size - 1) do
+                    let content = ContentAt grid row column
                     yield (cellContentToString content)
                 yield "\n"
         }
