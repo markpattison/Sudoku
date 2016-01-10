@@ -33,8 +33,7 @@ let basicAnalysis grid =
         let content = ContentAt grid column row
         match content with
         | Known n -> Known n
-        | Unknown -> Possibles (allPossibles - ruledOut column row)
-        | Possibles _ -> failwith "error"
+        | _ -> Possibles (allPossibles - ruledOut column row)
     New grid.Size analyse
 
 let cellsWithOnePossible cell =
@@ -78,14 +77,14 @@ let isSolution result =
     | Solution _ -> true
     | _ -> false
 
-let trialAndError grid analysis =
+let trialAndError analysis =
     let unknownCells = analysis.Cells |> List.choose isPossiblesNumber
     let cellToTry = unknownCells |> List.minBy snd |> fst
     let possibles =
         match cellToTry.Content with
         | Possibles p -> p
         | _ -> failwith "error"
-    let update = Grid.Update grid
+    let update = Grid.Update analysis
     let gridsToTry = possibles |> Seq.map (fun p -> { cellToTry with Content = Known p } |> List.singleton |> update) |> List.ofSeq
     gridsToTry
 
@@ -110,15 +109,13 @@ let rec Solve grid =
         | true -> Impossible
         | false ->
             let found = foundCells analysis
-            let numberFound = Seq.length found
-            match numberFound with
+            match Seq.length found with
             | 0 ->
-                let trials = trialAndError grid analysis
+                let trials = trialAndError analysis
                 let trialResults = trials |> List.map Solve
                 let anyMultiple = trialResults |> List.exists isMultiple
                 let solutions = trialResults |> List.filter isSolution
                 match (anyMultiple, solutions) with
-                | true, _ -> MultipleSolutions
                 | false, [] -> Impossible
                 | false, [solution] -> solution
                 | _ -> MultipleSolutions
