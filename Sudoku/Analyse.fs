@@ -23,18 +23,19 @@ let isImpossible cell =
     | _ -> false
 
 let basicAnalysis grid =
-    let allPossibles = [ 1 .. grid.MaxValue] |> Set.ofList
-    let cells = grid.Cells
-    let othersInRow column row = cells |> List.where (fun cell -> cell.Row = row && cell.Column <> column) |> List.choose isKnownValue |> Set.ofList
-    let othersInColumn column row = cells |> List.where (fun cell -> cell.Column = column && cell.Row <> row) |> List.choose isKnownValue |> Set.ofList
-    let othersInRegion column row = cells |> List.where (fun cell -> cell.Region = Grid.Region column row grid.Size && (cell.Column <> column || cell.Row <> row)) |> List.choose isKnownValue |> Set.ofList
-    let f column row  =
+    let allPossibles = [ 1 .. grid.MaxValue ] |> Set.ofList
+    let ruledOut column row =
+        grid.Cells
+        |> List.where (fun cell -> cell.Row = row || cell.Column = column || cell.Region = Region column row grid.Size)
+        |> List.choose isKnownValue
+        |> Set.ofList
+    let analyse column row  =
         let content = ContentAt grid column row
         match content with
         | Known n -> Known n
-        | Unknown -> Possibles (allPossibles - othersInRow column row - othersInColumn column row - othersInRegion column row)
+        | Unknown -> Possibles (allPossibles - ruledOut column row)
         | Possibles _ -> failwith "error"
-    New grid.Size f
+    New grid.Size analyse
 
 let cellsWithOnePossible cell =
     match cell.Content with
