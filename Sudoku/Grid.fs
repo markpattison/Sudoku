@@ -7,10 +7,10 @@ type CellContent =
 
 type Cell = { Row: int; Column: int; Region: int; Content: CellContent }
 
-type Grid = { Cells: Cell list; Size: int; MaxValue: int }
+type Grid = { Cells: Cell list; Size: int; MaxValue: int; Values: int Set }
 
 let ContentAt grid column row =
-    List.filter (fun cell -> cell.Column = column && cell.Row = row) grid.Cells |> List.exactlyOne |> (fun cell -> cell.Content)
+    List.find (fun cell -> cell.Column = column && cell.Row = row) grid.Cells |> (fun cell -> cell.Content)
 
 let Region column row n = (row / n) + n * (column / n)
 
@@ -26,14 +26,14 @@ let New n f =
         for column in 0 .. (nSq - 1) do
             for row in 0 .. (nSq - 1) do
                 yield { Row = row; Column = column; Region = Region column row n; Content = f column row }} |> List.ofSeq
-    { Cells = cells; Size = n; MaxValue = nSq }
+    { Cells = cells; Size = n; MaxValue = nSq; Values = [ 1 .. nSq ] |> Set.ofList }
 
 let Update (grid: Grid) updates =
     let f column row =
-        let matchingUpdates = List.filter (fun cell -> cell.Row = row && cell.Column = column) updates
-        match matchingUpdates with
-        | [] -> ContentAt grid column row
-        | [update] -> update.Content
+        let matchingUpdates = List.tryFind (fun cell -> cell.Row = row && cell.Column = column) updates
+        match (matchingUpdates, ContentAt grid column row) with
+        | (None, unchanged) -> unchanged
+        | (Some update, Unknown) | (Some update, Possibles _) -> update.Content
         | _ -> failwith "error"
     New grid.Size f
 

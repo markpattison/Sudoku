@@ -23,17 +23,15 @@ let isImpossible cell =
     | _ -> false
 
 let basicAnalysis grid =
-    let allPossibles = [ 1 .. grid.MaxValue ] |> Set.ofList
     let ruledOut column row =
         grid.Cells
         |> List.where (fun cell -> cell.Row = row || cell.Column = column || cell.Region = Region column row grid.Size)
         |> List.choose isKnownValue
         |> Set.ofList
     let analyse column row  =
-        let content = ContentAt grid column row
-        match content with
+        match ContentAt grid column row with
         | Known n -> Known n
-        | _ -> Possibles (allPossibles - ruledOut column row)
+        | _ -> Possibles (grid.Values - ruledOut column row)
     New grid.Size analyse
 
 let cellsWithOnePossible cell =
