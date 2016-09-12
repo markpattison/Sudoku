@@ -63,6 +63,38 @@ module Tests =
         result |> should equal (Solution (readGrid3 solutionGrid))
 
     [<Test>]
+    let ``testHard`` ()=
+        // "i" 06/09/2016
+        let sampleGrid =
+            "-5- --2 4--
+             4-3 6-- --7
+             2-- --3 ---
+             
+             3-- -8- -9-
+             --- --- ---
+             -4- -6- --1
+             
+             --- 1-- --9
+             6-- --9 8-5
+             --2 3-- -6-"
+
+        let solutionGrid =
+            "156 792 483
+             483 615 927
+             279 843 516
+             
+             361 584 792
+             725 931 648
+             948 267 351
+             
+             834 156 279
+             617 429 835
+             592 378 164"
+
+        let result = readGrid3 sampleGrid |> Solve
+        result |> should equal (Solution (readGrid3 solutionGrid))
+
+    [<Test>]
     let ``test4 1`` ()=
         let sampleGrid =
             "---- 4--- ---- ---8
