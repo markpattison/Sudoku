@@ -114,6 +114,25 @@ module Tests =
         result |> isSolution |> should equal true
 
     [<Test>]
+    let ``testExtreme2`` ()=
+        // Arto Inkala, 2012(?)
+        let sampleGrid =
+            "8-- --- ---
+             --3 6-- ---
+             -7- -9- 2--
+             
+             -5- --7 ---
+             --- -45 7--
+             --- 1-- -3-
+             
+             --1 --- -68
+             --8 5-- -1-
+             -9- --- 4--"
+
+        let result = readGrid3 sampleGrid |> Solve
+        result |> isSolution |> should equal true
+
+    [<Test>]
     let ``test4 1`` ()=
         let sampleGrid =
             "---- 4--- ---- ---8
