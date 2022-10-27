@@ -366,3 +366,37 @@ module Tests =
 
         let result = readGrid4 sampleGrid |> Solve
         result |> should equal (Solution (readGrid4 solutionGrid))
+
+    [<Test>]
+    let testOscar ()=
+        
+        // https://twitter.com/oscarfogelstrm/status/1585616218496663553
+
+        let sampleGrid =
+            "--1 -36 2-9
+             -26 195 8-3
+             9-3 -82 61-
+
+             1-- 823 9-6
+             -9- 671 32-
+             362 954 187
+
+             --9 26- 531
+             63- 51- 492
+             215 349 768"
+        
+        let solutionGrid =
+            "851 436 279
+             726 195 843
+             943 782 615
+
+             174 823 956
+             598 671 324
+             362 954 187
+
+             489 267 531
+             637 518 492
+             215 349 768"
+
+        let result = readGrid3 sampleGrid |> Solve
+        result |> should equal (Solution (readGrid3 solutionGrid))
